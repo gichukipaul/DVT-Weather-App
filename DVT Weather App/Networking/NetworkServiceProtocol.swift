@@ -8,5 +8,5 @@
 import Foundation
 
 protocol NetworkServiceProtocol{
-    func requestData(from url: URL, completion: @escaping (Result<Data, Error>) -> Void)
+    func requestData(from url: URL, completion: @escaping (Result<Data, WeatherServiceError>) -> Void)
 }

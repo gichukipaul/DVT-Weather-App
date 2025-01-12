@@ -36,7 +36,7 @@ struct List: Codable {
     let sys: ForecastSys
     let dtTxt: String
     let rain: Rain?
-
+    
     enum CodingKeys: String, CodingKey {
         case dt, main, weather, clouds, wind, visibility, pop, sys
         case dtTxt = "dt_txt"
@@ -54,7 +54,7 @@ struct ForecastMain: Codable {
     let temp, feelsLike, tempMin, tempMax: Double
     let pressure, seaLevel, grndLevel, humidity: Int
     let tempKf: Double
-
+    
     enum CodingKeys: String, CodingKey {
         case temp
         case feelsLike = "feels_like"
@@ -71,7 +71,7 @@ struct ForecastMain: Codable {
 // MARK: - Rain
 struct Rain: Codable {
     let the3H: Double
-
+    
     enum CodingKeys: String, CodingKey {
         case the3H = "3h"
     }

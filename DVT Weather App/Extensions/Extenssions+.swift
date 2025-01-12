@@ -8,9 +8,10 @@
 import Foundation
 
 extension Bundle {
-    var weatherAPIKey: String {
+    var weatherAPIKey: String? {
         guard let key = object(forInfoDictionaryKey: "weatherAPIKey") as? String else {
-            fatalError("OpenWeatherAPIKey not found in Info.plist")
+            print("OpenWeatherAPIKey not found in Info.plist")
+            return nil
         }
         return key
     }

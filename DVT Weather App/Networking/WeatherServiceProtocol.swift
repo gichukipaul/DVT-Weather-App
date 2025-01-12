@@ -10,6 +10,6 @@ import Combine
 
 protocol WeatherServiceProtocol {
     var apiKey: String { get }
-    func fetchCurrentWeather(latitude: Double, longitude: Double, completion: @escaping (Result<WeatherResponse, Error>) -> Void)
-    func fetchForecast(latitude: Double, longitude: Double, completion: @escaping (Result<ForecastResponse, Error>) -> Void)
+    func fetchCurrentWeather(latitude: Double, longitude: Double, completion: @escaping (Result<WeatherResponse, WeatherServiceError>) -> Void)
+    func fetchForecast(latitude: Double, longitude: Double, completion: @escaping (Result<ForecastResponse, WeatherServiceError>) -> Void)
 }
