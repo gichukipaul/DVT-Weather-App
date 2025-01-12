@@ -12,6 +12,7 @@ class MainWeatherViewController: UIViewController {
     // MARK: - VM and Dependencies
     private let viewModel: MainWeatherViewModel
     private var cancellables: Set<AnyCancellable> = []
+    private let locationManager = LocationManager()
     
     // MARK: - UI Elements
     private let backgroundImageView = UIImageView()
@@ -49,8 +50,7 @@ class MainWeatherViewController: UIViewController {
         super.viewDidLoad()
         setupUI()
         bindViewModel()
-        viewModel.fetchWeatherData(latitude: -2.3032076, longitude: 36.9999961) // Fetch real location and use it
-
+        setupLocationUpdates()
     }
 
     // MARK: - UI Setup
@@ -188,6 +188,20 @@ class MainWeatherViewController: UIViewController {
         stackView.addArrangedSubview(descriptionLabel)
     }
     
+    // MARK: - SETUP LOCATION UPDATES
+    private func setupLocationUpdates() {
+        locationManager.onLocationUpdate = { [weak self] location in
+            print("User's location: \(location.coordinate.latitude), \(location.coordinate.longitude)")
+            self?.viewModel.fetchWeatherData(latitude: location.coordinate.latitude, longitude: location.coordinate.longitude) // Fetch real location and use it
+        }
+        locationManager.startUpdatingLocation()
+        
+        locationManager.onError = { [weak self] error in
+            self?.showErrorAlert(message: "Failed to get your location. Error: \(error.localizedDescription)")
+        }
+    }
+    
+    
     // MARK: - Bind the VM
     private func bindViewModel() {
         // Bind current weather to update UI
@@ -212,10 +226,14 @@ class MainWeatherViewController: UIViewController {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] errorMessage in
                 if let message = errorMessage {
-                    self?.presentAlert(message: message)
+                    self?.showErrorAlert(message: message)
                 }
             }
             .store(in: &cancellables)
+    }
+    
+    private func showErrorAlert(message: String) {
+        Utilities.presentAlert(on: self, with: "ERROR", message: message)
     }
 
     private func updateCurrentWeatherUI(with weather: WeatherResponse) {
@@ -231,12 +249,6 @@ class MainWeatherViewController: UIViewController {
                 self.updateWeatherMode(.rainy, for: weatherCondition)
             }
         }
-    }
-    
-    private func presentAlert(message: String) {
-        let alert = UIAlertController(title: "Error", message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "OK", style: .default))
-        present(alert, animated: true)
     }
     
     private func updateWeatherMode(_ mode: WeatherMode, for weatherMain: String) {
