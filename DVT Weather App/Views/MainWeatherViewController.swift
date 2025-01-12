@@ -6,13 +6,20 @@
 //
 
 import UIKit
+import Combine
 
 class MainWeatherViewController: UIViewController {
+    // MARK: - VM and Dependencies
+    private let viewModel: MainWeatherViewModel
+    private var cancellables: Set<AnyCancellable> = []
+    
     // MARK: - UI Elements
     private let backgroundImageView = UIImageView()
     private let temperatureStackView = UIStackView()
     private let tempLabel = UILabel()
     private let descriptionLabel = UILabel()
+    
+    private let separatorView = UIView()
 
     private let horizontalStackView = UIStackView()
     private let minStackView = UIStackView()
@@ -26,16 +33,23 @@ class MainWeatherViewController: UIViewController {
     private let maxDescriptionLabel = UILabel()
 
     private let forecastTableView = UITableView()
-
+    
+    // MARK: - Initializers
+    init(viewModel: MainWeatherViewModel) {
+        self.viewModel = viewModel
+        super.init(nibName: nil, bundle: nil)
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
     // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
-        
-        // for testing
-        UIView.animate(withDuration: 0.5) {
-            self.updateWeatherMode(.rainy)
-        }
+        bindViewModel()
+        viewModel.fetchWeatherData(latitude: -2.3032076, longitude: 36.9999961) // Fetch real location and use it
 
     }
 
@@ -58,13 +72,13 @@ class MainWeatherViewController: UIViewController {
 
         // temp label
         tempLabel.font = UIFont.systemFont(ofSize: 64, weight: .bold)
-        tempLabel.textColor = .white
+        tempLabel.textColor = UIColor.label
         tempLabel.text = "25°" // Change this depending on data from API
         temperatureStackView.addArrangedSubview(tempLabel)
 
         // description label
         descriptionLabel.font = UIFont.systemFont(ofSize: 24, weight: .medium)
-        descriptionLabel.textColor = .white
+        descriptionLabel.textColor = UIColor.label
         descriptionLabel.text = "Sunny" // Change this depending on data from API
         temperatureStackView.addArrangedSubview(descriptionLabel)
         backgroundImageView.addSubview(temperatureStackView)
@@ -106,6 +120,11 @@ class MainWeatherViewController: UIViewController {
             description: "Max"
         )
         horizontalStackView.addArrangedSubview(maxStackView)
+        
+        // separator view
+        separatorView.translatesAutoresizingMaskIntoConstraints = false
+        separatorView.backgroundColor = UIColor.label
+        view.addSubview(separatorView)
 
         // table view
         forecastTableView.register(ForecastTableViewCell.self, forCellReuseIdentifier: "ForecastCell")
@@ -115,23 +134,29 @@ class MainWeatherViewController: UIViewController {
 
         // constraints
         NSLayoutConstraint.activate([
-            // background image
+            // Background image constraints
             backgroundImageView.topAnchor.constraint(equalTo: view.topAnchor),
             backgroundImageView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             backgroundImageView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            backgroundImageView.heightAnchor.constraint(equalTo: view.heightAnchor, multiplier: 0.4),
+            backgroundImageView.heightAnchor.constraint(equalTo: view.heightAnchor, multiplier: 0.46),
 
-            // temperature stack view which is on top of background image
+            // Temperature stack view (on top of the background image)
             temperatureStackView.centerXAnchor.constraint(equalTo: backgroundImageView.centerXAnchor),
             temperatureStackView.centerYAnchor.constraint(equalTo: backgroundImageView.centerYAnchor),
 
-            // horizontal stack view
+            // Horizontal stack view
             horizontalStackView.topAnchor.constraint(equalTo: backgroundImageView.bottomAnchor, constant: 16),
             horizontalStackView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             horizontalStackView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
 
-            // table view
-            forecastTableView.topAnchor.constraint(equalTo: horizontalStackView.bottomAnchor, constant: 16),
+            // Separator view constraints
+            separatorView.topAnchor.constraint(equalTo: horizontalStackView.bottomAnchor, constant: 16),
+            separatorView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 0),
+            separatorView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: 0),
+            separatorView.heightAnchor.constraint(equalToConstant: 1), // The thickness of the line
+
+            // Table view
+            forecastTableView.topAnchor.constraint(equalTo: separatorView.bottomAnchor, constant: 0),
             forecastTableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             forecastTableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             forecastTableView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor)
@@ -153,28 +178,82 @@ class MainWeatherViewController: UIViewController {
         stackView.translatesAutoresizingMaskIntoConstraints = false
 
         valueLabel.font = UIFont.systemFont(ofSize: 24, weight: .bold)
-        valueLabel.textColor = .white
+        valueLabel.textColor = UIColor.label
         valueLabel.text = value
         stackView.addArrangedSubview(valueLabel)
 
         descriptionLabel.font = UIFont.systemFont(ofSize: 14, weight: .regular)
-        descriptionLabel.textColor = .white
+        descriptionLabel.textColor = UIColor.label
         descriptionLabel.text = description
         stackView.addArrangedSubview(descriptionLabel)
     }
     
-    // for initial testing
-    func updateWeatherMode(_ mode: WeatherMode) {
-        switch mode {
-        case .sunny:
+    // MARK: - Bind the VM
+    private func bindViewModel() {
+        // Bind current weather to update UI
+        viewModel.$currentWeather
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] weather in
+                guard let weather = weather else { return }
+                self?.updateCurrentWeatherUI(with: weather)
+            }
+            .store(in: &cancellables)
+
+        // Bind forecast data to reload the table view
+        viewModel.$forecast
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] forecast in
+                self?.forecastTableView.reloadData()
+            }
+            .store(in: &cancellables)
+
+        // Handle error messages
+        viewModel.$errorMessage
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] errorMessage in
+                if let message = errorMessage {
+                    self?.presentAlert(message: message)
+                }
+            }
+            .store(in: &cancellables)
+    }
+
+    private func updateCurrentWeatherUI(with weather: WeatherResponse) {
+        tempLabel.text = "\(Int(weather.main?.temp ?? 00))°"
+        descriptionLabel.text = weather.weather?.first?.description.capitalized
+        
+        minLabel.text = "\(Int(weather.main?.tempMin ?? 00))°"
+        currentLabel.text = "\(Int(weather.main?.temp ?? 00))°"
+        maxLabel.text = "\(Int(weather.main?.tempMax ?? 00))°"
+        
+        if let weatherCondition = weather.weather?.first?.main {
+            UIView.animate(withDuration: 0.5) {
+                self.updateWeatherMode(.rainy, for: weatherCondition)
+            }
+        }
+    }
+    
+    private func presentAlert(message: String) {
+        let alert = UIAlertController(title: "Error", message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "OK", style: .default))
+        present(alert, animated: true)
+    }
+    
+    private func updateWeatherMode(_ mode: WeatherMode, for weatherMain: String) {
+        switch weatherMain.lowercased() {
+        case "clear":
             view.backgroundColor = UIColor(named: "sunny")
             backgroundImageView.image = UIImage(named: "forest_sunny")
 
-        case .rainy:
+        case "rain":
             view.backgroundColor = UIColor(named: "rainy")
             backgroundImageView.image = UIImage(named: "forest_rainy")
 
-        case .cloudy:
+        case "clouds":
+            view.backgroundColor = UIColor(named: "cloudy")
+            backgroundImageView.image = UIImage(named: "forest_cloudy")
+
+        default:
             view.backgroundColor = UIColor(named: "cloudy")
             backgroundImageView.image = UIImage(named: "forest_cloudy")
         }
@@ -186,20 +265,17 @@ class MainWeatherViewController: UIViewController {
 extension MainWeatherViewController: UITableViewDataSource {
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return 5 // for a Five-day forecast
+        return viewModel.dailyForecasts.count
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         guard let cell = tableView.dequeueReusableCell(withIdentifier: "ForecastCell", for: indexPath) as? ForecastTableViewCell else {
             return UITableViewCell()
         }
-
-        // test data
-        let day = "Monday"
-        let icon = UIImage(named: "partlysunny") // Replace this dynamically
-        let temperature = "20°"
-
-        cell.configure(day: day, icon: icon, temperature: temperature)
+        
+        let forecast = viewModel.dailyForecasts[indexPath.row]
+        cell.configure(day: forecast.dayOfWeek, icon: forecast.weatherIcon, temperature: forecast.temp)
+        
         return cell
     }
 }
