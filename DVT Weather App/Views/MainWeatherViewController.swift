@@ -9,7 +9,6 @@ import UIKit
 import SwiftUI
 import Combine
 
-
 class MainWeatherViewController: UIViewController {
     // MARK: - VM and Dependencies
     private let viewModel: MainWeatherViewModel
@@ -37,6 +36,7 @@ class MainWeatherViewController: UIViewController {
     private let maxDescriptionLabel = UILabel()
     
     private let navigateToFavouritesButton = UIButton(type: .system)
+    private let searchLocationButton = UIButton(type: .system)
     private let favouriteButton = UIButton()
     
     private let forecastTableView = UITableView()
@@ -149,6 +149,13 @@ class MainWeatherViewController: UIViewController {
         forecastTableView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(forecastTableView)
         
+        // Search Location Button
+        searchLocationButton.setTitle("Search Locations", for: .normal)
+        searchLocationButton.titleLabel?.font = UIFont.systemFont(ofSize: 18, weight: .medium)
+        searchLocationButton.setTitleColor(.systemBlue, for: .normal)
+        searchLocationButton.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(searchLocationButton)
+        
         // Navigate to favourites view
         navigateToFavouritesButton.setTitle("View Favourites", for: .normal)
         navigateToFavouritesButton.titleLabel?.font = UIFont.systemFont(ofSize: 18, weight: .medium)
@@ -191,41 +198,37 @@ class MainWeatherViewController: UIViewController {
             forecastTableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             forecastTableView.bottomAnchor.constraint(equalTo: navigateToFavouritesButton.topAnchor, constant: -16),
             
-            // navigateToFavouritesButton
-            navigateToFavouritesButton.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            navigateToFavouritesButton.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            // Navigate to Favourites Button
+            navigateToFavouritesButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            navigateToFavouritesButton.trailingAnchor.constraint(equalTo: searchLocationButton.leadingAnchor, constant: -8),
             navigateToFavouritesButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -8),
+            navigateToFavouritesButton.heightAnchor.constraint(equalToConstant: 44),
+            navigateToFavouritesButton.widthAnchor.constraint(equalTo: searchLocationButton.widthAnchor), // Equal widths
+
+            // Search Location Button
+            searchLocationButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            searchLocationButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -8),
+            searchLocationButton.heightAnchor.constraint(equalToConstant: 44),
             
         ])
         
-        // Attach action to the button
+        // Attach actions to the buttons
         navigateToFavouritesButton.addTarget(self, action: #selector(navigateToFavourites), for: .touchUpInside)
+        searchLocationButton.addTarget(self, action: #selector(openSearchLocation), for: .touchUpInside)
     }
     
     @objc private func toggleFavorite() {
-        if let currentWeather = viewModel.currentWeather {
-            // Assuming currentWeather is associated with a specific location you want to add/remove from favorites
-            let location = FavouriteLocation(
-                name: currentWeather.name ?? "Unknown",
-                latitude: currentWeather.coord.lat,
-                longitude: currentWeather.coord.lon
-            )
-            
-            // Check if this location is already in the favourites list
-            if let index = viewModel.favouriteLocations.firstIndex(where: { $0.id == location.id }) {
-                // If it exists, remove it from favourites
-                viewModel.removeFavourite(id: location.id)
-                isFavorite = false
-                favouriteButton.setImage(UIImage(systemName: "star"), for: .normal)
-            } else {
-                // If it doesn't exist, add it to favourites
-                viewModel.addFavourite(location: location)
-                isFavorite = true
-                favouriteButton.setImage(UIImage(systemName: "star.fill"), for: .normal)
-            }
-        }
+        viewModel.toggleFavourite()
     }
     
+    // Method to update the favorite button appearance
+    private func updateFavoriteButton(isFavorite: Bool) {
+        self.isFavorite = isFavorite
+        let imageName = isFavorite ? "star.fill" : "star"
+        DispatchQueue.main.sync { [weak self] in
+            self?.favouriteButton.setImage(UIImage(systemName: imageName), for: .normal)
+        }
+    }
     
     @objc private func navigateToFavourites() {
         let favouritesView = FavouritesView(viewModel: viewModel)
@@ -234,6 +237,28 @@ class MainWeatherViewController: UIViewController {
         navigationController?.pushViewController(hostingController, animated: true)
     }
     
+    @objc private func openSearchLocation() {
+        let searchLocationView = UIHostingController(rootView: SearchLocationsView { [weak self] location in
+            self?.fetchWeatherForLocation(location)
+        })
+        present(searchLocationView, animated: true)
+    }
+    
+    private func fetchWeatherForLocation(_ location: String) {
+        let geocodingService = GeocodingService()
+        geocodingService.getCoordinates(for: location) { [weak self] result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let coordinates):
+                    print("Coordinates for \(location): \(coordinates.latitude), \(coordinates.longitude)")
+                    self?.viewModel.fetchWeatherData(latitude: coordinates.latitude, longitude: coordinates.longitude)
+                case .failure(let error):
+                    self?.showErrorAlert(message: "Failed to fetch location: \(error.localizedDescription)")
+                }
+            }
+        }
+    }
+
     // a helper function to configure a vertical stack view
     private func configureVerticalStackView(
         stackView: UIStackView,
@@ -292,6 +317,15 @@ class MainWeatherViewController: UIViewController {
             }
             .store(in: &cancellables)
         
+        // Bind favourite locations to update UI
+        viewModel.$isCurrentLocationFavourite
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] isFavourite in
+                let imageName = isFavourite ? "star.fill" : "star"
+                self?.favouriteButton.setImage(UIImage(systemName: imageName), for: .normal)
+            }
+            .store(in: &cancellables)
+        
         // Handle error messages
         viewModel.$errorMessage
             .receive(on: DispatchQueue.main)
@@ -333,18 +367,22 @@ class MainWeatherViewController: UIViewController {
         switch weatherMain.lowercased() {
         case "clear":
             view.backgroundColor = UIColor(named: "sunny")
+            forecastTableView.backgroundColor = UIColor(named: "sunny")
             backgroundImageView.image = UIImage(named: "forest_sunny")
             
         case "rain":
             view.backgroundColor = UIColor(named: "rainy")
+            forecastTableView.backgroundColor = UIColor(named: "rainy")
             backgroundImageView.image = UIImage(named: "forest_rainy")
             
         case "clouds":
             view.backgroundColor = UIColor(named: "cloudy")
+            forecastTableView.backgroundColor = UIColor(named: "cloudy")
             backgroundImageView.image = UIImage(named: "forest_cloudy")
             
         default:
             view.backgroundColor = UIColor(named: "cloudy")
+            forecastTableView.backgroundColor = UIColor(named: "cloudy")
             backgroundImageView.image = UIImage(named: "forest_cloudy")
         }
     }
@@ -363,6 +401,7 @@ extension MainWeatherViewController: UITableViewDataSource {
             return UITableViewCell()
         }
         
+        cell.backgroundColor = .clear
         let forecast = viewModel.dailyForecasts[indexPath.row]
         cell.configure(day: forecast.dayOfWeek, icon: forecast.weatherIcon, temperature: forecast.temp)
         

@@ -12,7 +12,11 @@ class MainWeatherViewModel: ObservableObject {
     private let weatherService: WeatherServiceProtocol
     private var cancellables = Set<AnyCancellable>()
     
-    @Published var currentWeather: WeatherResponse?
+    @Published var currentWeather: WeatherResponse? {
+        didSet {
+            updateCurrentFavouriteLocation()
+        }
+    }
     @Published var forecast: ForecastResponse?
     @Published var errorMessage: String?
     @Published var favouriteLocations: [FavouriteLocation] = [] {
@@ -20,6 +24,10 @@ class MainWeatherViewModel: ObservableObject {
             saveFavourites() // Automatically save when favouriteLocations changes
         }
     }
+    
+    @Published var isCurrentLocationFavourite: Bool = false
+
+    private var currentFavouriteLocation: FavouriteLocation?
     
     init(weatherService: WeatherServiceProtocol) {
         self.weatherService = weatherService
@@ -44,7 +52,6 @@ class MainWeatherViewModel: ObservableObject {
             }, receiveValue: { [weak self] weather, forecast in
                 self?.currentWeather = weather
                 self?.forecast = forecast
-                
             })
             .store(in: &cancellables)
     }
@@ -55,30 +62,55 @@ class MainWeatherViewModel: ObservableObject {
     }
     
     // MARK: Favourite implementation
-   
-    func addFavourite(location: FavouriteLocation) {
-        // Check if the location already exists in the favouriteLocations array
+    
+    func toggleFavourite() {
+        guard let location = currentFavouriteLocation else { return }
+        
+        if isCurrentLocationFavourite {
+            removeFavourite(id: location.id)
+        } else {
+            addFavourite(location: location)
+        }
+        
+        isCurrentLocationFavourite.toggle()
+    }
+    
+    private func updateCurrentFavouriteLocation() {
+        guard let currentWeather = currentWeather else {
+            currentFavouriteLocation = nil
+            isCurrentLocationFavourite = false
+            return
+        }
+        
+        let location = FavouriteLocation(
+            name: currentWeather.name ?? "Unknown",
+            latitude: currentWeather.coord.lat,
+            longitude: currentWeather.coord.lon
+        )
+        
+        currentFavouriteLocation = location
+        isCurrentLocationFavourite = favouriteLocations.contains(where: { $0.id == location.id })
+    }
+        
+    private func addFavourite(location: FavouriteLocation) {
         if !favouriteLocations.contains(where: { $0.id == location.id }) {
             favouriteLocations.append(location)
-            saveFavourites()
         }
     }
     
-       
     func removeFavourite(id: UUID) {
-            favouriteLocations.removeAll { $0.id == id }
-            saveFavourites()
+        favouriteLocations.removeAll { $0.id == id }
     }
-        
+    
     private func saveFavourites() {
         if let data = try? JSONEncoder().encode(favouriteLocations) {
             UserDefaults.standard.set(data, forKey: "favourites")
         }
     }
-        
+    
     private func loadFavourites() {
         if let data = UserDefaults.standard.data(forKey: "favourites"),
-            let favourites = try? JSONDecoder().decode([FavouriteLocation].self, from: data) {
+           let favourites = try? JSONDecoder().decode([FavouriteLocation].self, from: data) {
             favouriteLocations = favourites
         }
     }
