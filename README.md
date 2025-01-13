@@ -1,10 +1,30 @@
 # Weather App - DVT
-A Swift-based weather application that fetches real-time weather data and forecasts based on the user's location. The app uses Combine for handling asynchronous data fetching and presents errors in a user-friendly manner with alerts. It integrates with the OpenWeather API for weather data.
+A Swift-based weather application that fetches real-time weather data and forecasts based on the user's location. The app uses Combine to handle asynchronous data fetching and presents errors in a user-friendly manner with alerts. It integrates with the OpenWeather API for weather data.
 
-## Pre Requisities
+<div style="display:flex; justify-content:center;">
+  <img src="https://github.com/gichukipaul/DVT-Weather-App/blob/main/screenshots/lauchLight.png" alt="Light Mode Screenshot 1" width="220" style="margin-right: 25px;"/>
+
+  <img src="https://github.com/gichukipaul/DVT-Weather-App/blob/main/screenshots/mainLight.png" alt="Light Mode Screenshot 2" width="220" style="margin-right: 25px;"/>
+
+  <img src="https://github.com/gichukipaul/DVT-Weather-App/blob/main/screenshots/searchLightt.png" alt="Light Mode Screenshot 3" width="220" />
+  
+  <img src="https://github.com/gichukipaul/DVT-Weather-App/blob/main/screenshots/favLight.png" alt="Light Mode Screenshot 3" width="220" />
+</div>
+<br>
+<div style="display:flex; justify-content:center;">
+  <img src="https://github.com/gichukipaul/DVT-Weather-App/blob/main/screenshots/launchDark.png" alt="Light Mode Screenshot 1" width="220" style="margin-right: 25px;"/>
+
+  <img src="https://github.com/gichukipaul/DVT-Weather-App/blob/main/screenshots/mainDark.png" alt="Light Mode Screenshot 2" width="220" style="margin-right: 25px;"/>
+
+  <img src="https://github.com/gichukipaul/DVT-Weather-App/blob/main/screenshots/searchDark.png" alt="Light Mode Screenshot 3" width="220" />
+  
+  <img src="https://github.com/gichukipaul/DVT-Weather-App/blob/main/screenshots/favDark.png" alt="Light Mode Screenshot 3" width="220" />
+</div>
+
+## Prerequisites
 - [A valid Google Maps Api Key](https://developers.google.com/maps/documentation/android-sdk/get-api-key)
 - [A valid Open Weather API Key](https://openweathermap.org/appid)
-- **NOTE: This uses the 3.0 version of the openweather API**
+- **NOTE: This uses the 3.0 version of the OpenWeather API**
 
 ## Setup
 - Open the `Info.plist` on the project
@@ -18,22 +38,22 @@ A Swift-based weather application that fetches real-time weather data and foreca
 ## Features
 - Current Weather: Fetches current weather data based on the user's location.
 - Weather Forecast: Provides a 5-day weather forecast with daily details.
-- Search new locations and get weather forecast.
+- Search new locations and get weather forecasts.
 - Error Handling: Provides meaningful error messages using alerts in case of failures.
 
 ## Usage
 - Launch the app, and it will request the user's location.
 Once granted, the app will fetch the current weather and forecast data based on the user's coordinates.
-If there's any error (such as no location access or network issues), an alert will be presented.
+An alert will be presented if there is any error (such as no location access or network issues).
 
 ## Architecture
-This project follows a MVVM (Model-View-ViewModel) architecture with the following components:
+This project follows an MVVM (Model-View-ViewModel) architecture with the following components:
 
 - Model: Represents the weather data (WeatherResponse, ForecastResponse).
-- View: Displays the weather data to the user.
+- View: Displays the weather data to the user. The Main view is Programmatic UIKit and the rest are SwiftUI
 - ViewModel: Manages the data fetching, provides data to the view, and handles errors.
 - Combine: Used for handling asynchronous data fetching and combining the results of multiple API calls (weather and forecast).
-- Custom Error Handling: Errors are modeled using enums and displayed to the user via alerts.
+- Custom Error Handling: Errors are modelled using enums and displayed to the user via alerts.
 - Error Handling: - The project uses a custom error enum to handle errors more effectively.
 
 ## Acknowledgements
