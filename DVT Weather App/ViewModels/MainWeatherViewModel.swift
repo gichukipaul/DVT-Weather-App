@@ -15,9 +15,15 @@ class MainWeatherViewModel: ObservableObject {
     @Published var currentWeather: WeatherResponse?
     @Published var forecast: ForecastResponse?
     @Published var errorMessage: String?
+    @Published var favouriteLocations: [FavouriteLocation] = [] {
+        didSet {
+            saveFavourites() // Automatically save when favouriteLocations changes
+        }
+    }
     
     init(weatherService: WeatherServiceProtocol) {
         self.weatherService = weatherService
+        loadFavourites()
     }
     
     func fetchWeatherData(latitude: Double, longitude: Double) {
@@ -38,6 +44,7 @@ class MainWeatherViewModel: ObservableObject {
             }, receiveValue: { [weak self] weather, forecast in
                 self?.currentWeather = weather
                 self?.forecast = forecast
+                
             })
             .store(in: &cancellables)
     }
@@ -45,5 +52,34 @@ class MainWeatherViewModel: ObservableObject {
     var dailyForecasts: [ForecastInfo] {
         guard let forecast = forecast else { return [] }
         return Utilities.extractDailyForecast(from: forecast)
+    }
+    
+    // MARK: Favourite implementation
+   
+    func addFavourite(location: FavouriteLocation) {
+        // Check if the location already exists in the favouriteLocations array
+        if !favouriteLocations.contains(where: { $0.id == location.id }) {
+            favouriteLocations.append(location)
+            saveFavourites()
+        }
+    }
+    
+       
+    func removeFavourite(id: UUID) {
+            favouriteLocations.removeAll { $0.id == id }
+            saveFavourites()
+    }
+        
+    private func saveFavourites() {
+        if let data = try? JSONEncoder().encode(favouriteLocations) {
+            UserDefaults.standard.set(data, forKey: "favourites")
+        }
+    }
+        
+    private func loadFavourites() {
+        if let data = UserDefaults.standard.data(forKey: "favourites"),
+            let favourites = try? JSONDecoder().decode([FavouriteLocation].self, from: data) {
+            favouriteLocations = favourites
+        }
     }
 }

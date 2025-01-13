@@ -6,13 +6,16 @@
 //
 
 import UIKit
+import SwiftUI
 import Combine
+
 
 class MainWeatherViewController: UIViewController {
     // MARK: - VM and Dependencies
     private let viewModel: MainWeatherViewModel
     private var cancellables: Set<AnyCancellable> = []
     private let locationManager = LocationManager()
+    private var isFavorite = false // To track whether the current location is favourited
     
     // MARK: - UI Elements
     private let backgroundImageView = UIImageView()
@@ -32,6 +35,9 @@ class MainWeatherViewController: UIViewController {
     private let currentDescriptionLabel = UILabel()
     private let maxLabel = UILabel()
     private let maxDescriptionLabel = UILabel()
+    
+    private let navigateToFavouritesButton = UIButton(type: .system)
+    private let favouriteButton = UIButton()
     
     private let forecastTableView = UITableView()
     
@@ -70,6 +76,16 @@ class MainWeatherViewController: UIViewController {
         temperatureStackView.distribution = .equalSpacing
         temperatureStackView.spacing = 8
         temperatureStackView.translatesAutoresizingMaskIntoConstraints = false
+        
+        // Favourite button
+        favouriteButton.translatesAutoresizingMaskIntoConstraints = false
+        favouriteButton.setImage(UIImage(systemName: "star"), for: .normal)
+        favouriteButton.imageView?.contentMode = .scaleAspectFill
+        favouriteButton.backgroundColor = UIColor.black.withAlphaComponent(0.5)  // Semi-transparent black
+        favouriteButton.layer.cornerRadius = 25
+        favouriteButton.clipsToBounds = true
+        favouriteButton.addTarget(self, action: #selector(toggleFavorite), for: .touchUpInside)
+        view.addSubview(favouriteButton)
         
         // temp label
         tempLabel.font = UIFont.systemFont(ofSize: 64, weight: .bold)
@@ -133,6 +149,13 @@ class MainWeatherViewController: UIViewController {
         forecastTableView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(forecastTableView)
         
+        // Navigate to favourites view
+        navigateToFavouritesButton.setTitle("View Favourites", for: .normal)
+        navigateToFavouritesButton.titleLabel?.font = UIFont.systemFont(ofSize: 18, weight: .medium)
+        navigateToFavouritesButton.setTitleColor(.systemBlue, for: .normal)
+        navigateToFavouritesButton.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(navigateToFavouritesButton)
+        
         // constraints
         NSLayoutConstraint.activate([
             // Background image constraints
@@ -144,6 +167,12 @@ class MainWeatherViewController: UIViewController {
             // Temperature stack view (on top of the background image)
             temperatureStackView.centerXAnchor.constraint(equalTo: backgroundImageView.centerXAnchor),
             temperatureStackView.centerYAnchor.constraint(equalTo: backgroundImageView.centerYAnchor),
+            
+            // Favourite button - top right corner
+            favouriteButton.topAnchor.constraint(equalTo: backgroundImageView.topAnchor, constant: 52),
+            favouriteButton.trailingAnchor.constraint(equalTo: backgroundImageView.trailingAnchor, constant: -32),
+            favouriteButton.widthAnchor.constraint(equalToConstant: 50),
+            favouriteButton.heightAnchor.constraint(equalToConstant: 50),
             
             // Horizontal stack view
             horizontalStackView.topAnchor.constraint(equalTo: backgroundImageView.bottomAnchor, constant: 16),
@@ -157,11 +186,52 @@ class MainWeatherViewController: UIViewController {
             separatorView.heightAnchor.constraint(equalToConstant: 1), // The thickness of the line
             
             // Table view
-            forecastTableView.topAnchor.constraint(equalTo: separatorView.bottomAnchor, constant: 0),
+            forecastTableView.topAnchor.constraint(equalTo: separatorView.bottomAnchor),
             forecastTableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             forecastTableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            forecastTableView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor)
+            forecastTableView.bottomAnchor.constraint(equalTo: navigateToFavouritesButton.topAnchor, constant: -16),
+            
+            // navigateToFavouritesButton
+            navigateToFavouritesButton.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            navigateToFavouritesButton.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            navigateToFavouritesButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -8),
+            
         ])
+        
+        // Attach action to the button
+        navigateToFavouritesButton.addTarget(self, action: #selector(navigateToFavourites), for: .touchUpInside)
+    }
+    
+    @objc private func toggleFavorite() {
+        if let currentWeather = viewModel.currentWeather {
+            // Assuming currentWeather is associated with a specific location you want to add/remove from favorites
+            let location = FavouriteLocation(
+                name: currentWeather.name ?? "Unknown",
+                latitude: currentWeather.coord.lat,
+                longitude: currentWeather.coord.lon
+            )
+            
+            // Check if this location is already in the favourites list
+            if let index = viewModel.favouriteLocations.firstIndex(where: { $0.id == location.id }) {
+                // If it exists, remove it from favourites
+                viewModel.removeFavourite(id: location.id)
+                isFavorite = false
+                favouriteButton.setImage(UIImage(systemName: "star"), for: .normal)
+            } else {
+                // If it doesn't exist, add it to favourites
+                viewModel.addFavourite(location: location)
+                isFavorite = true
+                favouriteButton.setImage(UIImage(systemName: "star.fill"), for: .normal)
+            }
+        }
+    }
+    
+    
+    @objc private func navigateToFavourites() {
+        let favouritesView = FavouritesView(viewModel: viewModel)
+        let hostingController = UIHostingController(rootView: favouritesView)
+        hostingController.title = "Favourites"
+        navigationController?.pushViewController(hostingController, animated: true)
     }
     
     // a helper function to configure a vertical stack view

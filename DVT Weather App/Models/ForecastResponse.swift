@@ -11,7 +11,7 @@ import Foundation
 struct ForecastResponse: Codable {
     let cod: String
     let message, cnt: Int
-    let list: [List]
+    let list: [ForecastList]
     let city: City
 }
 
@@ -25,22 +25,18 @@ struct City: Codable {
 }
 
 // MARK: - List
-struct List: Codable {
+struct ForecastList: Codable {
     let dt: Int
     let main: ForecastMain
     let weather: [ForecastWeather]
     let clouds: ForecastClouds
     let wind: ForecastWind
-    let visibility: Int
-    let pop: Double
     let sys: ForecastSys
     let dtTxt: String
-    let rain: Rain?
     
     enum CodingKeys: String, CodingKey {
-        case dt, main, weather, clouds, wind, visibility, pop, sys
+        case dt, main, weather, clouds, wind, sys
         case dtTxt = "dt_txt"
-        case rain
     }
 }
 
@@ -51,13 +47,13 @@ struct ForecastClouds: Codable {
 
 // MARK: - ForecastMain
 struct ForecastMain: Codable {
-    let temp, feelsLike, tempMin, tempMax: Double
-    let pressure, seaLevel, grndLevel, humidity: Int
+    let temp, tempMin, tempMax: Double
+    let pressure, seaLevel, grndLevel: Double
     let tempKf: Double
+    let humidity: Int
     
     enum CodingKeys: String, CodingKey {
         case temp
-        case feelsLike = "feels_like"
         case tempMin = "temp_min"
         case tempMax = "temp_max"
         case pressure
@@ -68,44 +64,26 @@ struct ForecastMain: Codable {
     }
 }
 
-// MARK: - Rain
-struct Rain: Codable {
-    let the3H: Double
-    
-    enum CodingKeys: String, CodingKey {
-        case the3H = "3h"
-    }
-}
+//// MARK: - Rain
+//struct Rain: Codable {
+//    let the3H: Double
+//    
+//    enum CodingKeys: String, CodingKey {
+//        case the3H = "3h"
+//    }
+//}
 
 // MARK: - Sys
 struct ForecastSys: Codable {
-    let pod: Pod
-}
-
-enum Pod: String, Codable {
-    case d = "d"
-    case n = "n"
+    let pod: String
 }
 
 // MARK: - Weather
 struct ForecastWeather: Codable {
     let id: Int
-    let main: MainEnum
-    let description: Description
+    let main: String
+    let description: String
     let icon: String
-}
-
-enum Description: String, Codable {
-    case brokenClouds = "broken clouds"
-    case fewClouds = "few clouds"
-    case lightRain = "light rain"
-    case overcastClouds = "overcast clouds"
-    case scatteredClouds = "scattered clouds"
-}
-
-enum MainEnum: String, Codable {
-    case clouds = "Clouds"
-    case rain = "Rain"
 }
 
 // MARK: - Wind

@@ -10,7 +10,7 @@ import UIKit
 
 public class Utilities {
     static func extractDailyForecast(from response: ForecastResponse) -> [ForecastInfo] {
-        var dailyForecasts: [String: List] = [:]
+        var dailyForecasts: [String: ForecastList] = [:]
         let targetTime = "12:00:00" // Set a consistent time for daily forecasts
         
         for forecast in response.list {
@@ -42,7 +42,7 @@ public class Utilities {
             let day = DateFormatter.dayOfWeek.string(from: date)
             let timeComponents = forecast.dtTxt.split(separator: " ")
             let time = timeComponents.count > 1 ? String(timeComponents[1]) : "Unknown"
-            let weatherDescription = forecast.weather.first?.description.rawValue.capitalized ?? "Unknown"
+            let weatherDescription = forecast.weather.first?.description.capitalized ?? "Unknown"
             
             return ForecastInfo(
                 forecastDate: String(forecast.dtTxt.prefix(10)),

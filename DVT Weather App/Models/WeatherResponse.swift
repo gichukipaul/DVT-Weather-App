@@ -51,7 +51,8 @@ struct Main: Codable {
 
 // MARK: - Sys
 struct Sys: Codable {
-    let type, id: Int?
+    let type: Int?
+    let id: Int?
     let country: String
     let sunrise, sunset: Int
 }
@@ -66,4 +67,5 @@ struct Weather: Codable {
 struct Wind: Codable {
     let speed: Double
     let deg: Int?
+    let gust: Double?
 }
