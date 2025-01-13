@@ -7,7 +7,7 @@
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>The app needs your location to provide local weather forecasts</string>
 	<key>weatherAPIKey</key>
-	<string>INSERT YOUR API KEY HERE</string>
+	<string>4cb98f2e416d1fc286993cf53ccecf12</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

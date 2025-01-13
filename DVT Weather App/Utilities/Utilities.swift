@@ -14,7 +14,7 @@ public class Utilities {
         let targetTime = "12:00:00" // Set a consistent time for daily forecasts
         
         for forecast in response.list {
-            if let date = DateFormatter.dateFormatter.date(from: forecast.dtTxt) {
+            if DateFormatter.dateFormatter.date(from: forecast.dtTxt) != nil {
                 let dayKey = String(forecast.dtTxt.prefix(10)) // Extract the "yyyy-MM-dd" part
                 
                 // Only add forecasts with the target time and avoid duplicates for the same day
@@ -75,10 +75,35 @@ public class Utilities {
         }
     }
     
+    // a helper function to configure a vertical stack view
+    static func configureVerticalStackView(stackView: UIStackView, valueLabel: UILabel, descriptionLabel: UILabel, value: String, description: String) {
+        stackView.axis = .vertical
+        stackView.alignment = .center
+        stackView.distribution = .equalSpacing
+        stackView.spacing = 4
+        stackView.translatesAutoresizingMaskIntoConstraints = false
+        
+        valueLabel.font = UIFont.systemFont(ofSize: 24, weight: .bold)
+        valueLabel.textColor = UIColor.label
+        valueLabel.text = value
+        stackView.addArrangedSubview(valueLabel)
+        
+        descriptionLabel.font = UIFont.systemFont(ofSize: 14, weight: .regular)
+        descriptionLabel.textColor = UIColor.label
+        descriptionLabel.text = description
+        stackView.addArrangedSubview(descriptionLabel)
+    }
+    
 }
 
 enum WeatherType: String {
     case Sunny = "Sun"
     case Rainy = "Rain"
     case Cloudy = "Cloud"
+}
+
+enum WeatherMode {
+    case sunny
+    case rainy
+    case cloudy
 }

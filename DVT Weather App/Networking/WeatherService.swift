@@ -100,4 +100,3 @@ enum WeatherServiceError: Error {
         }
     }
 }
-

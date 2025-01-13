@@ -56,6 +56,21 @@ class MainWeatherViewModel: ObservableObject {
             .store(in: &cancellables)
     }
     
+    func fetchWeatherForLocation(_ location: String) {
+        let geocodingService = GeocodingService()
+        geocodingService.getCoordinates(for: location) { [weak self] result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let coordinates):
+                    print("Coordinates for \(location): \(coordinates.latitude), \(coordinates.longitude)")
+                    self?.fetchWeatherData(latitude: coordinates.latitude, longitude: coordinates.longitude)
+                case .failure(let error):
+                    self?.errorMessage = "Failed to fetch location: \(error.localizedDescription)"
+                }
+            }
+        }
+    }
+    
     var dailyForecasts: [ForecastInfo] {
         guard let forecast = forecast else { return [] }
         return Utilities.extractDailyForecast(from: forecast)

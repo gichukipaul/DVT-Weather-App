@@ -109,7 +109,7 @@ class MainWeatherViewController: UIViewController {
         view.addSubview(horizontalStackView)
         
         // min stack view
-        configureVerticalStackView(
+        Utilities.configureVerticalStackView(
             stackView: minStackView,
             valueLabel: minLabel,
             descriptionLabel: minDescriptionLabel,
@@ -119,7 +119,7 @@ class MainWeatherViewController: UIViewController {
         horizontalStackView.addArrangedSubview(minStackView)
         
         // current stack view
-        configureVerticalStackView(
+        Utilities.configureVerticalStackView(
             stackView: currentStackView,
             valueLabel: currentLabel,
             descriptionLabel: currentDescriptionLabel,
@@ -129,7 +129,7 @@ class MainWeatherViewController: UIViewController {
         horizontalStackView.addArrangedSubview(currentStackView)
         
         // max stack view
-        configureVerticalStackView(
+        Utilities.configureVerticalStackView(
             stackView: maxStackView,
             valueLabel: maxLabel,
             descriptionLabel: maxDescriptionLabel,
@@ -239,49 +239,9 @@ class MainWeatherViewController: UIViewController {
     
     @objc private func openSearchLocation() {
         let searchLocationView = UIHostingController(rootView: SearchLocationsView { [weak self] location in
-            self?.fetchWeatherForLocation(location)
+            self?.viewModel.fetchWeatherForLocation(location)
         })
         present(searchLocationView, animated: true)
-    }
-    
-    private func fetchWeatherForLocation(_ location: String) {
-        let geocodingService = GeocodingService()
-        geocodingService.getCoordinates(for: location) { [weak self] result in
-            DispatchQueue.main.async {
-                switch result {
-                case .success(let coordinates):
-                    print("Coordinates for \(location): \(coordinates.latitude), \(coordinates.longitude)")
-                    self?.viewModel.fetchWeatherData(latitude: coordinates.latitude, longitude: coordinates.longitude)
-                case .failure(let error):
-                    self?.showErrorAlert(message: "Failed to fetch location: \(error.localizedDescription)")
-                }
-            }
-        }
-    }
-
-    // a helper function to configure a vertical stack view
-    private func configureVerticalStackView(
-        stackView: UIStackView,
-        valueLabel: UILabel,
-        descriptionLabel: UILabel,
-        value: String,
-        description: String
-    ) {
-        stackView.axis = .vertical
-        stackView.alignment = .center
-        stackView.distribution = .equalSpacing
-        stackView.spacing = 4
-        stackView.translatesAutoresizingMaskIntoConstraints = false
-        
-        valueLabel.font = UIFont.systemFont(ofSize: 24, weight: .bold)
-        valueLabel.textColor = UIColor.label
-        valueLabel.text = value
-        stackView.addArrangedSubview(valueLabel)
-        
-        descriptionLabel.font = UIFont.systemFont(ofSize: 14, weight: .regular)
-        descriptionLabel.textColor = UIColor.label
-        descriptionLabel.text = description
-        stackView.addArrangedSubview(descriptionLabel)
     }
     
     // MARK: - SETUP LOCATION UPDATES
@@ -337,17 +297,6 @@ class MainWeatherViewController: UIViewController {
             .store(in: &cancellables)
     }
     
-    private func showErrorAlert(message: String) {
-        Utilities.presentAlert(on: self, with: "ERROR", message: message)
-    }
-    
-    private func checkWeatherAPIKey() {
-        guard let apiKey = Bundle.main.weatherAPIKey else {
-            showErrorAlert(message: "Weather API Key is missing in the Info.plist.")
-            return
-        }
-    }
-    
     private func updateCurrentWeatherUI(with weather: WeatherResponse) {
         tempLabel.text = "\(Int(weather.main?.temp ?? 00))°"
         descriptionLabel.text = weather.weather?.first?.description.capitalized
@@ -362,8 +311,31 @@ class MainWeatherViewController: UIViewController {
             }
         }
     }
+}
+
+// MARK: - UITableViewDataSource
+extension MainWeatherViewController: UITableViewDataSource {
     
-    private func updateWeatherMode(_ mode: WeatherMode, for weatherMain: String) {
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        return viewModel.dailyForecasts.count
+    }
+    
+    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        guard let cell = tableView.dequeueReusableCell(withIdentifier: "ForecastCell", for: indexPath) as? ForecastTableViewCell else {
+            return UITableViewCell()
+        }
+        
+        cell.backgroundColor = .clear
+        let forecast = viewModel.dailyForecasts[indexPath.row]
+        cell.configure(day: forecast.dayOfWeek, icon: forecast.weatherIcon, temperature: forecast.temp)
+        
+        return cell
+    }
+}
+
+// MARK: Other extensions
+extension MainWeatherViewController {
+     func updateWeatherMode(_ mode: WeatherMode, for weatherMain: String) {
         switch weatherMain.lowercased() {
         case "clear":
             view.backgroundColor = UIColor(named: "sunny")
@@ -387,30 +359,14 @@ class MainWeatherViewController: UIViewController {
         }
     }
     
-}
-
-// MARK: - UITableViewDataSource
-extension MainWeatherViewController: UITableViewDataSource {
-    
-    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return viewModel.dailyForecasts.count
+    private func showErrorAlert(message: String) {
+        Utilities.presentAlert(on: self, with: "ERROR", message: message)
     }
     
-    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        guard let cell = tableView.dequeueReusableCell(withIdentifier: "ForecastCell", for: indexPath) as? ForecastTableViewCell else {
-            return UITableViewCell()
+    private func checkWeatherAPIKey() {
+        guard Bundle.main.weatherAPIKey != nil else {
+            showErrorAlert(message: "Weather API Key is missing in the Info.plist.")
+            return
         }
-        
-        cell.backgroundColor = .clear
-        let forecast = viewModel.dailyForecasts[indexPath.row]
-        cell.configure(day: forecast.dayOfWeek, icon: forecast.weatherIcon, temperature: forecast.temp)
-        
-        return cell
     }
-}
-
-enum WeatherMode {
-    case sunny
-    case rainy
-    case cloudy
 }
