@@ -4,6 +4,7 @@
 //
 //  Created by GICHUKI on 12/01/2025.
 //
+// This file was generated from JSON Schema using quicktype:[https://app.quicktype.io/?l=swift]
 
 import Foundation
 
