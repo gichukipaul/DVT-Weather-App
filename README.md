@@ -24,6 +24,7 @@ A Swift-based weather application that fetches real-time weather data and foreca
 ## Prerequisites
 - [A valid Google Maps Api Key](https://developers.google.com/maps/documentation/android-sdk/get-api-key)
 - [A valid Open Weather API Key](https://openweathermap.org/appid)
+- Xcode 16
 - **NOTE: This uses the 3.0 version of the OpenWeather API**
 
 ## Setup
