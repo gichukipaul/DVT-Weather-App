@@ -27,6 +27,12 @@ A Swift-based weather application that fetches real-time weather data and foreca
 - **NOTE: This uses the 3.0 version of the OpenWeather API**
 
 ## Setup
+- Signup and get a free API Key at [https://openweathermap.org/api](https://openweathermap.org/api)
+- You can clone this project directly from XCode or use your terminal as below
+   ```sh
+   git@github.com:gichukipaul/DVT-Weather-App.git
+   ```
+- Load the project in XCode
 - Open the `Info.plist` on the project
 - Change `weatherAPIKey` to your API key and Save the file.
 ```xml
@@ -58,6 +64,7 @@ This project follows an MVVM (Model-View-ViewModel) architecture with the follow
 
 ## Acknowledgements
 - [Openweathermap.org](Openweathermap.org) : For the API endpoint to source the weather data
+- [https://app.quicktype.io/?l=swift](https://app.quicktype.io/?l=swift) : JSON to Swift Models
 - [Iconfinder.com](Iconfinder.com ) : I got the AppIcon from there
 
 License
