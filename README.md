@@ -31,7 +31,7 @@ A Swift-based weather application that fetches real-time weather data and foreca
 - Signup and get a free API Key at [https://openweathermap.org/api](https://openweathermap.org/api)
 - You can clone this project directly from XCode or use your terminal as below
    ```sh
-   git@github.com:gichukipaul/DVT-Weather-App.git
+   git clone git@github.com:gichukipaul/DVT-Weather-App.git
    ```
 - Load the project in XCode
 - Open the `Info.plist` on the project
